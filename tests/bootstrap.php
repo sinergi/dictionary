@@ -16,7 +16,7 @@ if (file_exists($vendor . "/autoload.php")) {
 
 spl_autoload_register(function ($class) {
     $class = ltrim($class, '\\');
-    $prefix = 'Dictionary\\Tests';
+    $prefix = 'Sinergi\\Dictionary\\Tests';
     if (strpos($class, $prefix) === 0) {
         $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
         $class = 'Dictionary' . DIRECTORY_SEPARATOR . 'Tests' . DIRECTORY_SEPARATOR . '_includes' . substr($class, strlen($prefix));
