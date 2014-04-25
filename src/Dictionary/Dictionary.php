@@ -1,12 +1,13 @@
 <?php
 namespace Sinergi\Dictionary;
 
+use JsonSerializable;
 use Countable;
 use IteratorAggregate;
 use ArrayAccess;
 use ArrayIterator;
 
-class Dictionary implements Countable, IteratorAggregate, ArrayAccess
+class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSerializable
 {
     /**
      * @var array|Dictionary[]
@@ -135,6 +136,19 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess
     public function getStorage()
     {
         return $this->storage;
+    }
+
+    /**
+     * @return array
+     */
+    public function jsonSerialize()
+    {
+        $this->load();
+        $retval = [];
+        foreach ($this->items as $key => $item) {
+            $retval[$key] = $item;
+        }
+        return $retval;
     }
 
     /**
