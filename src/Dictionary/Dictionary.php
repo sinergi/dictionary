@@ -214,7 +214,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     public function offsetGet($offset)
     {
         $this->load();
-        return $this->items[$offset];
+        return isset($this->items[$offset]) ? $this->items[$offset] : null;
     }
 
     /**

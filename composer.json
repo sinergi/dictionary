@@ -13,11 +13,16 @@
         "php": ">=5.4.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "4.*"
+        "phpunit/phpunit": "~4"
     },
     "autoload": {
         "psr-4": {
             "Sinergi\\Dictionary\\": "src/Dictionary"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Sinergi\\Dictionary\\Tests\\": ["tests/Dictionary/Tests", "tests/Dictionary/Tests/_includes"]
         }
     }
 }
