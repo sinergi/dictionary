@@ -42,4 +42,12 @@ class DictionaryTest extends PHPUnit_Framework_TestCase
         $dictionary = new Dictionary('en', __DIR__ . '/_files');
         $this->assertNull($dictionary['example']['title2']);
     }
+
+    public function testErrors()
+    {
+        $dictionary = new Dictionary('en', __DIR__ . '/_files');
+        $errors = $dictionary->errors(['test_exists', 'test2_exists'], $dictionary['example']['errors']);
+        $this->assertEquals('This is an error', $errors['test_exists']);
+        $this->assertEquals('This already exists', $errors['test2_exists']);
+    }
 }

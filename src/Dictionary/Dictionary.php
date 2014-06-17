@@ -7,8 +7,13 @@ use IteratorAggregate;
 use ArrayAccess;
 use ArrayIterator;
 
+/**
+ * @method array errors(array $errors, array $text)
+ */
 class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSerializable
 {
+    const ERRORS_METHOD = 'errors';
+
     /**
      * @var array|Dictionary[]
      */
@@ -152,6 +157,35 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     }
 
     /**
+     * @param array $errors
+     * @param array $text
+     * @return array
+     */
+    public function __errors(array $errors = null, array $text = null)
+    {
+        if (null === $errors) {
+            $errors = [];
+        }
+        if (null === $text) {
+            $text = [];
+        }
+        $retval = [];
+        foreach ($errors as $error) {
+            if (isset($text[$error])) {
+                $retval[$error] = $text[$error];
+            } else {
+                foreach ($text as $key => $value) {
+                    if (strncmp($error, $key, strlen($key)) !== false) {
+                        $retval[$error] = $value;
+                        break;
+                    }
+                }
+            }
+        }
+        return $retval;
+    }
+
+    /**
      * @param string $name
      * @return mixed
      */
@@ -167,6 +201,9 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      */
     public function __call($name, $args = null)
     {
+        if ($name === self::ERRORS_METHOD && !$this->offsetExists($name) || null === $args) {
+            return call_user_func_array([$this, '__errors'], $args);
+        }
         return $this->offsetGet($name);
     }
 
