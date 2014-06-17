@@ -175,7 +175,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                 $retval[$error] = $text[$error];
             } else {
                 foreach ($text as $key => $value) {
-                    if (strncmp($error, $key, strlen($key)) !== false) {
+                    if (strncmp($error, $key, strlen($key)) === 0) {
                         $retval[$error] = $value;
                         break;
                     }
