@@ -169,13 +169,15 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         if (null === $text) {
             $text = [];
         }
+        $matches = [];
         $retval = [];
         foreach ($errors as $error) {
             if (isset($text[$error])) {
                 $retval[$error] = $text[$error];
             } else {
                 foreach ($text as $key => $value) {
-                    if (strncmp($error, $key, strlen($key)) === 0) {
+                    if (strncmp($error, $key, strlen($key)) === 0 && !isset($matches[$key])) {
+                        $matches[$key] = true;
                         $retval[$error] = $value;
                         break;
                     }
