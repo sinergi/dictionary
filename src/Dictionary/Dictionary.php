@@ -67,20 +67,28 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
             $dir = $this->getDirPath();
             if (is_dir($dir)) {
                 // Scan dir
-                $extension = strrev('.php');
                 foreach (scandir($dir) as $file) {
                     if ($file !== '.' && $file !== '..') {
-                        if (strpos(strrev($file), $extension) === 0) {
+                        if (substr($file, -4) === '.php') {
                             $file = substr($file, 0, -4);
+                        } elseif (substr($file, -5) === '.json') {
+                            $file = substr($file, 0, -5);
                         }
                         $this->items[$file] = new Dictionary($this->getLanguage(), $this->getStorage(), $file, $this->path);
                     }
                 }
             } elseif (!empty($this->name)) {
                 // Import file
-                $file = $dir . '.php';
-                if (is_file($file)) {
-                    $variables = require $file;
+                $phpFile = $dir . '.php';
+                $jsonFile = $dir . '.json';
+                if (is_file($phpFile)) {
+                    $variables = require $phpFile;
+                    if (is_array($variables)) {
+                        $this->items = array_merge($this->items, $variables);
+                    }
+                } elseif (is_file($jsonFile)) {
+                    $content = file_get_contents($jsonFile);
+                    $variables = json_decode($content, true);
                     if (is_array($variables)) {
                         $this->items = array_merge($this->items, $variables);
                     }
