@@ -152,6 +152,23 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     }
 
     /**
+     * @param string $name
+     * @return mixed
+     */
+    public function get($name)
+    {
+        $parts = explode('.', $name, 2);
+        if (isset($parts[0])) {
+            $name = $parts[0];
+        }
+        if (isset($parts[1])) {
+            return $this->offsetGet($name)[$parts[1]];
+        } else {
+            return $this->offsetGet($name);
+        }
+    }
+
+    /**
      * @return array
      */
     public function jsonSerialize()
