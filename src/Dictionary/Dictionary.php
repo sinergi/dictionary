@@ -58,6 +58,13 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         $this->path = trim($path . DIRECTORY_SEPARATOR . $name, DIRECTORY_SEPARATOR);
     }
 
+    public static function createDictionary($items)
+    {
+        $dictionary = new Dictionary();
+        $dictionary->set($items);
+        return $dictionary;
+    }
+
     /**
      * Load files and variables
      */
@@ -151,21 +158,53 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         return $this->storage;
     }
 
+    public function set($items)
+    {
+        $this->items = $items;
+    }
+
     /**
      * @param string $name
      * @return mixed
      */
     public function get($name)
     {
+        if (is_array($name)) {
+            $retval = [];
+            foreach ($name as $string) {
+                $value = $this->get($string);
+                if (is_object($value)) {
+                    $value = $value->toArray();
+                }
+                if (!is_array($value)) {
+                    $value = [$value];
+                }
+                $retval = array_merge($retval, $value);
+            }
+            return Dictionary::createDictionary($retval);
+        }
+
         $parts = explode('.', $name, 2);
         if (isset($parts[0])) {
             $name = $parts[0];
         }
         if (isset($parts[1])) {
-            return $this->offsetGet($name)[$parts[1]];
+            $object = $this->offsetGet($name);
+            if (is_object($object)) {
+                return $object->get($parts[1]);
+            }
         } else {
             return $this->offsetGet($name);
         }
+        return null;
+    }
+
+    /**
+     * @return array
+     */
+    public function toArray()
+    {
+        return $this->jsonSerialize();
     }
 
     /**
