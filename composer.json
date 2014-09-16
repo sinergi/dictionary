@@ -1,7 +1,9 @@
 {
     "name": "sinergi/dictionary",
+    "type": "library",
     "description": "PHP Dictionary library",
     "keywords": ["sinergi", "dictionary", "text"],
+    "homepage": "https://github.com/sinergi/dictionary",
     "license": "MIT",
     "authors": [
         {

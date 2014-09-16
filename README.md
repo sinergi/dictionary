@@ -1,8 +1,10 @@
 Dictionary
 ==========
 
-[![Build Status](https://travis-ci.org/sinergi/dictionary.svg)](https://travis-ci.org/sinergi/dictionary)
-
+[![Build Status](https://img.shields.io/travis/sinergi/dictionary/master.svg?style=flat)](https://travis-ci.org/sinergi/dictionary)
+[![Latest Stable Version](http://img.shields.io/packagist/v/sinergi/dictionary.svg?style=flat)](https://packagist.org/packages/sinergi/dictionary)
+[![Total Downloads](https://img.shields.io/packagist/dt/sinergi/dictionary.svg?style=flat)](https://packagist.org/packages/sinergi/dictionary)
+[![License](https://img.shields.io/packagist/l/sinergi/dictionary.svg?style=flat)](https://packagist.org/packages/sinergi/dictionary)
 
 Localization and text management library for PHP.
 

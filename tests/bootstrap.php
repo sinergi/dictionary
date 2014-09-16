@@ -13,16 +13,3 @@ if (file_exists($vendor . "/autoload.php")) {
         throw new Exception("Unable to load dependencies");
     }
 }
-
-spl_autoload_register(function ($class) {
-    $class = ltrim($class, '\\');
-    $prefix = 'Sinergi\\Dictionary\\Tests';
-    if (strpos($class, $prefix) === 0) {
-        $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
-        $class = 'Dictionary' . DIRECTORY_SEPARATOR . 'Tests' . DIRECTORY_SEPARATOR . '_includes' . substr($class, strlen($prefix));
-        $file = __DIR__ . DIRECTORY_SEPARATOR . $class . '.php';
-        if (file_exists($file)) {
-            require_once $file;
-        }
-    }
-});
