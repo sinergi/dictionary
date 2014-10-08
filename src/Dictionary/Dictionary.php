@@ -49,18 +49,22 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      * @param null|string $storage
      * @param null|string $name
      * @param null|string $path
+     * @param null|bool $isLoaded
      */
-    public function __construct($language = null, $storage = null, $name = null, $path = null)
+    public function __construct($language = null, $storage = null, $name = null, $path = null, $isLoaded = null)
     {
         $this->setLanguage($language);
         $this->setStorage($storage);
         $this->name = $name;
         $this->path = trim($path . DIRECTORY_SEPARATOR . $name, DIRECTORY_SEPARATOR);
+        if (null !== $isLoaded) {
+            $this->isLoaded = $isLoaded;
+        }
     }
 
     public static function createDictionary($items)
     {
-        $dictionary = new Dictionary();
+        $dictionary = new Dictionary(null, null, null, null, true);
         $dictionary->set($items);
         return $dictionary;
     }
