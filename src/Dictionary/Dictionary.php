@@ -6,6 +6,7 @@ use Countable;
 use IteratorAggregate;
 use ArrayAccess;
 use ArrayIterator;
+use Sinergi\Dictionary\FileType\Html;
 
 /**
  * @method array errors(array $errors, array $text)
@@ -40,6 +41,16 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     private $path;
 
     /**
+     * @var string
+     */
+    private $type;
+
+    /**
+     * @var string
+     */
+    private $content;
+
+    /**
      * @var bool
      */
     private $isLoaded = false;
@@ -50,8 +61,9 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      * @param null|string $name
      * @param null|string $path
      * @param null|bool $isLoaded
+     * @param string $type
      */
-    public function __construct($language = null, $storage = null, $name = null, $path = null, $isLoaded = null)
+    public function __construct($language = null, $storage = null, $name = null, $path = null, $isLoaded = null, $type = null)
     {
         $this->setLanguage($language);
         $this->setStorage($storage);
@@ -60,11 +72,12 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         if (null !== $isLoaded) {
             $this->isLoaded = $isLoaded;
         }
+        $this->type = $type;
     }
 
     public static function createDictionary($items)
     {
-        $dictionary = new Dictionary(null, null, null, null, true);
+        $dictionary = new Dictionary(null, null, null, null, true, null);
         $dictionary->set($items);
         return $dictionary;
     }
@@ -84,6 +97,17 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                             $file = substr($file, 0, -4);
                         } elseif (substr($file, -5) === '.json') {
                             $file = substr($file, 0, -5);
+                        } elseif (substr($file, -5) === '.html') {
+                            $file = substr($file, 0, -5);
+                            $this->items[$file] = new Dictionary(
+                                $this->getLanguage(),
+                                $this->getStorage(),
+                                $file,
+                                $this->path,
+                                false,
+                                Html::TYPE
+                            );
+                            continue;
                         }
                         $this->items[$file] = new Dictionary($this->getLanguage(), $this->getStorage(), $file, $this->path);
                     }
@@ -92,12 +116,12 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                 // Import file
                 $phpFile = $dir . '.php';
                 $jsonFile = $dir . '.json';
-                if (is_file($phpFile)) {
+                if (file_exists($phpFile)) {
                     $variables = require $phpFile;
                     if (is_array($variables)) {
                         $this->items = array_merge($this->items, $variables);
                     }
-                } elseif (is_file($jsonFile)) {
+                } elseif (file_exists($jsonFile)) {
                     $content = file_get_contents($jsonFile);
                     $variables = json_decode($content, true);
                     if (is_array($variables)) {
@@ -124,6 +148,20 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
             $path = $path . DIRECTORY_SEPARATOR . $this->path;
         }
         return $path;
+    }
+
+    /**
+     * @return string
+     */
+    private function getRawContent()
+    {
+        if ($this->isLoaded) {
+            return $this->content;
+        }
+        $file = $this->getDirPath() . '.' . $this->type;
+        $this->content = file_get_contents($file);
+        $this->isLoaded = true;
+        return $this->content;
     }
 
     /**
@@ -162,6 +200,27 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         return $this->storage;
     }
 
+    /**
+     * @return string
+     */
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    /**
+     * @param string $type
+     * @return $this
+     */
+    public function setType($type)
+    {
+        $this->type = $type;
+        return $this;
+    }
+
+    /**
+     * @param mixed $items
+     */
     public function set($items)
     {
         $this->items = $items;
@@ -321,7 +380,14 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     public function offsetGet($offset)
     {
         $this->load();
-        return isset($this->items[$offset]) ? $this->items[$offset] : null;
+        if (isset($this->items[$offset])) {
+            $item = $this->items[$offset];
+            if ($item instanceof Dictionary && $item->getType() === Html::TYPE) {
+                return $this->items[$offset]->getRawContent();
+            }
+            return $this->items[$offset];
+        }
+        return null;
     }
 
     /**
