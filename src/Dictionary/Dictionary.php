@@ -7,6 +7,8 @@ use IteratorAggregate;
 use ArrayAccess;
 use ArrayIterator;
 use Sinergi\Dictionary\FileType\Html;
+use Sinergi\Dictionary\FileType\Json;
+use Sinergi\Dictionary\FileType\Php;
 
 /**
  * @method array errors(array $errors, array $text)
@@ -93,13 +95,30 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                 // Scan dir
                 foreach (scandir($dir) as $file) {
                     if ($file !== '.' && $file !== '..') {
+                        $item = null;
                         if (substr($file, -4) === '.php') {
                             $file = substr($file, 0, -4);
+                            $item = new Dictionary(
+                                $this->getLanguage(),
+                                $this->getStorage(),
+                                $file,
+                                $this->path,
+                                false,
+                                Php::TYPE
+                            );
                         } elseif (substr($file, -5) === '.json') {
                             $file = substr($file, 0, -5);
+                            $item = new Dictionary(
+                                $this->getLanguage(),
+                                $this->getStorage(),
+                                $file,
+                                $this->path,
+                                false,
+                                Json::TYPE
+                            );
                         } elseif (substr($file, -5) === '.html') {
                             $file = substr($file, 0, -5);
-                            $this->items[$file] = new Dictionary(
+                            $item = new Dictionary(
                                 $this->getLanguage(),
                                 $this->getStorage(),
                                 $file,
@@ -107,22 +126,27 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                                 false,
                                 Html::TYPE
                             );
-                            continue;
                         }
-                        $this->items[$file] = new Dictionary($this->getLanguage(), $this->getStorage(), $file, $this->path);
+                        if (null !== $item) {
+                            if (isset($this->items[$file])) {
+                                $this->items[$file]->merge($item);
+                            } else {
+                                $this->items[$file] = $item;
+                            }
+                        }
                     }
                 }
-            } elseif (!empty($this->name)) {
+            }
+
+            if (!empty($this->name)) {
                 // Import file
-                $phpFile = $dir . '.php';
-                $jsonFile = $dir . '.json';
-                if (file_exists($phpFile)) {
-                    $variables = require $phpFile;
+                if ($this->type === Php::TYPE) {
+                    $variables = require $dir . "." . Php::TYPE;
                     if (is_array($variables)) {
                         $this->items = array_merge($this->items, $variables);
                     }
-                } elseif (file_exists($jsonFile)) {
-                    $content = file_get_contents($jsonFile);
+                } elseif ($this->type === Json::TYPE) {
+                    $content = file_get_contents($dir . "." . Json::TYPE);
                     $variables = json_decode($content, true);
                     if (is_array($variables)) {
                         $this->items = array_merge($this->items, $variables);
@@ -224,6 +248,14 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     public function set($items)
     {
         $this->items = $items;
+    }
+
+    /**
+     * @param Dictionary $items
+     */
+    public function merge(Dictionary $items)
+    {
+        $this->items = array_merge($this->items, $items->toArray());
     }
 
     /**

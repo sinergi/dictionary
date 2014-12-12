@@ -57,4 +57,11 @@ class DictionaryTest extends PHPUnit_Framework_TestCase
         $result = $dictionary['test1']['example'];
         $this->assertRegExp("/Hello World/", $result);
     }
+
+    public function testFileWithDirectory()
+    {
+        $dictionary = new Dictionary('en', __DIR__ . '/_files');
+        $result = $dictionary['test1']['foo'];
+        $this->assertEquals('bar', $result);
+    }
 }
