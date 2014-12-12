@@ -6,6 +6,16 @@ use Sinergi\Dictionary\Dictionary;
 
 class DictionaryTest extends PHPUnit_Framework_TestCase
 {
+    /**
+     * @var Dictionary
+     */
+    private $dictionary;
+
+    public function setUp()
+    {
+        $this->dictionary = new Dictionary('en', __DIR__ . '/_files');
+    }
+
     public function testConstruct()
     {
         $dictionary = new Dictionary;
@@ -33,35 +43,56 @@ class DictionaryTest extends PHPUnit_Framework_TestCase
 
     public function testDictionary()
     {
-        $dictionary = new Dictionary('en', __DIR__ . '/_files');
-        $this->assertEquals('This is an example', $dictionary['example']['title']);
+        $result = $this->dictionary['example']['title'];
+        $this->assertEquals('This is an example', $result);
+    }
+
+    public function testGetMethod()
+    {
+        $result = $this->dictionary->get('example.title');
+        $this->assertEquals('This is an example', $result);
+    }
+
+    public function testGetDirMethod()
+    {
+        $result = $this->dictionary->get('test2');
+        $this->assertInstanceOf(Dictionary::class, $result);
+        $this->assertInstanceOf(Dictionary::class, $result->get('test3'));
+        $this->assertEquals('yo', $result->get('test3')->get('hey'));
     }
 
     public function testNonExistingDictionary()
     {
-        $dictionary = new Dictionary('en', __DIR__ . '/_files');
-        $this->assertNull($dictionary['example']['title2']);
+        $result = $this->dictionary['example']['title2'];
+        $this->assertNull($result);
     }
 
     public function testErrors()
     {
-        $dictionary = new Dictionary('en', __DIR__ . '/_files');
-        $errors = $dictionary->errors(['test_exists', 'test2_exists'], $dictionary['example']['errors']);
+        $errors = $this->dictionary->errors(
+            ['test_exists', 'test2_exists'],
+            $this->dictionary['example']['errors']
+        );
         $this->assertEquals('This is an error', $errors['test_exists']);
         $this->assertEquals('This already exists', $errors['test2_exists']);
     }
 
     public function testHtmlFile()
     {
-        $dictionary = new Dictionary('en', __DIR__ . '/_files');
-        $result = $dictionary['test1']['example'];
+        $result = $this->dictionary['test1']['example'];
         $this->assertRegExp("/Hello World/", $result);
     }
 
     public function testFileWithDirectory()
     {
-        $dictionary = new Dictionary('en', __DIR__ . '/_files');
-        $result = $dictionary['test1']['foo'];
+        $result = $this->dictionary['test1']['foo'];
         $this->assertEquals('bar', $result);
+    }
+
+    public function testGetMethodFileWithDirectory()
+    {
+        $result = $this->dictionary->get('test1');
+        $this->assertEquals('bar', $result['foo']);
+        $this->assertRegExp("/Hello World/", $result['example']);
     }
 }

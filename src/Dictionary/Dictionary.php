@@ -126,6 +126,14 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                                 false,
                                 Html::TYPE
                             );
+                        } elseif (is_dir($dir . DIRECTORY_SEPARATOR . $file)) {
+                            $item = new Dictionary(
+                                $this->getLanguage(),
+                                $this->getStorage(),
+                                $file,
+                                $this->path,
+                                false
+                            );
                         }
                         if (null !== $item) {
                             if (isset($this->items[$file])) {
