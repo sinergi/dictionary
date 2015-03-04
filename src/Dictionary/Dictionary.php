@@ -9,6 +9,7 @@ use ArrayIterator;
 use Sinergi\Dictionary\FileType\Html;
 use Sinergi\Dictionary\FileType\Json;
 use Sinergi\Dictionary\FileType\Php;
+use InvalidArgumentException;
 
 /**
  * @method array errors(array $errors, array $text)
@@ -26,6 +27,11 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      * @var string
      */
     private $language;
+
+    /**
+     * @var array
+     */
+    private $extend;
 
     /**
      * @var string
@@ -77,6 +83,29 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         $this->type = $type;
     }
 
+    /**
+     * @param null|string|array $language
+     * @throws InvalidArgumentException
+     */
+    public function extend($language)
+    {
+        if (null === $language) {
+            return;
+        }
+        if (is_string($language)) {
+            $language = [$language];
+        }
+        if (is_array($language)) {
+            if (null === $this->extend) {
+                $this->extend = $language;
+            } else {
+                $this->extend = array_merge($this->extend, $language);
+            }
+            return;
+        }
+        throw new InvalidArgumentException;
+    }
+
     public static function createDictionary($items)
     {
         $dictionary = new Dictionary(null, null, null, null, true, null);
@@ -84,102 +113,159 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         return $dictionary;
     }
 
-    /**
-     * Load files and variables
-     */
-    private function load()
+    private function loadSelf()
     {
         if (!$this->isLoaded) {
-            $dir = $this->getDirPath();
-            if (is_dir($dir)) {
-                // Scan dir
-                foreach (scandir($dir) as $file) {
-                    if ($file !== '.' && $file !== '..') {
-                        $item = null;
-                        if (substr($file, -4) === '.php') {
-                            $file = substr($file, 0, -4);
-                            $item = new Dictionary(
-                                $this->getLanguage(),
-                                $this->getStorage(),
-                                $file,
-                                $this->path,
-                                false,
-                                Php::TYPE
-                            );
-                        } elseif (substr($file, -5) === '.json') {
-                            $file = substr($file, 0, -5);
-                            $item = new Dictionary(
-                                $this->getLanguage(),
-                                $this->getStorage(),
-                                $file,
-                                $this->path,
-                                false,
-                                Json::TYPE
-                            );
-                        } elseif (substr($file, -5) === '.html') {
-                            $file = substr($file, 0, -5);
-                            $item = new Dictionary(
-                                $this->getLanguage(),
-                                $this->getStorage(),
-                                $file,
-                                $this->path,
-                                false,
-                                Html::TYPE
-                            );
-                        } elseif (is_dir($dir . DIRECTORY_SEPARATOR . $file)) {
-                            $item = new Dictionary(
-                                $this->getLanguage(),
-                                $this->getStorage(),
-                                $file,
-                                $this->path,
-                                false
-                            );
-                        }
-                        if (null !== $item) {
-                            if (isset($this->items[$file])) {
-                                $this->items[$file]->merge($item);
-                            } else {
-                                $this->items[$file] = $item;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (!empty($this->name)) {
-                // Import file
-                if ($this->type === Php::TYPE) {
-                    $variables = require $dir . "." . Php::TYPE;
-                    if (is_array($variables)) {
-                        $this->items = array_merge($this->items, $variables);
-                    }
-                } elseif ($this->type === Json::TYPE) {
-                    $content = file_get_contents($dir . "." . Json::TYPE);
-                    $variables = json_decode($content, true);
-                    if (is_array($variables)) {
-                        $this->items = array_merge($this->items, $variables);
-                    }
-                }
-            }
-
+            $this->items = $this->load(
+                $this->name,
+                $this->path,
+                $this->type,
+                $this->items,
+                $this->language,
+                $this->storage,
+                $this->extend
+            );
             $this->isLoaded = true;
         }
     }
 
     /**
+     * Load files and variables
+     * @param string $name
+     * @param string $path
+     * @param string $type
+     * @param array|Dictionary[] $items
+     * @param string $language
+     * @param string $storage
+     * @param array $extend
+     * @return array
+     */
+    private static function load($name, $path, $type, array $items, $language, $storage, array $extend = null)
+    {
+        $newItems = [];
+
+        $dirPath = self::getDirPath($storage, $path, $language);
+
+        if (null !== $extend) {
+            foreach ($extend as $extendLanguage) {
+                $newItems = array_merge($newItems, self::load(
+                    $name,
+                    $path,
+                    $type,
+                    [],
+                    $extendLanguage,
+                    $storage
+                ));
+            }
+        }
+
+        if (is_dir($dirPath)) {
+            // Scan dir
+            foreach (scandir($dirPath) as $file) {
+                if ($file !== '.' && $file !== '..') {
+                    $item = null;
+                    if (substr($file, -4) === '.php') {
+                        $file = substr($file, 0, -4);
+                        $item = new Dictionary(
+                            $language,
+                            $storage,
+                            $file,
+                            $path,
+                            false,
+                            Php::TYPE
+                        );
+                        $item->extend($extend);
+                    } elseif (substr($file, -5) === '.json') {
+                        $file = substr($file, 0, -5);
+                        $item = new Dictionary(
+                            $language,
+                            $storage,
+                            $file,
+                            $path,
+                            false,
+                            Json::TYPE
+                        );
+                        $item->extend($extend);
+                    } elseif (substr($file, -5) === '.html') {
+                        $file = substr($file, 0, -5);
+                        $item = new Dictionary(
+                            $language,
+                            $storage,
+                            $file,
+                            $path,
+                            false,
+                            Html::TYPE
+                        );
+                        $item->extend($extend);
+                    } elseif (is_dir($dirPath . DIRECTORY_SEPARATOR . $file)) {
+                        $item = new Dictionary(
+                            $language,
+                            $storage,
+                            $file,
+                            $path,
+                            false
+                        );
+                        $item->extend($extend);
+                    }
+
+                    if (null !== $item) {
+                        if (isset($items[$file])) {
+                            $newItems[$file] = $items[$file]->merge($item);
+                        } else {
+                            $newItems[$file] = $item;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!empty($name)) {
+            // Import file
+            if ($type === Php::TYPE) {
+                $variables = require $dirPath . "." . Php::TYPE;
+                if (is_array($variables)) {
+                    $newItems = array_merge($newItems, $variables);
+                }
+            } elseif ($type === Json::TYPE) {
+                $content = file_get_contents($dirPath . "." . Json::TYPE);
+                $variables = json_decode($content, true);
+                if (is_array($variables)) {
+                    $newItems = array_merge($newItems, $variables);
+                }
+            }
+        }
+
+        return $newItems;
+    }
+
+    /**
+     * @param string $storage
+     * @param string $path
+     * @param string $language
      * @return string
      */
-    private function getDirPath()
+    private static function getDirPath($storage, $path, $language)
     {
-        $path = $this->getStorage();
-        $language = $this->getLanguage();
+        $returnValue = $storage;
         if (!empty($language)) {
-            $path = $path . DIRECTORY_SEPARATOR . $language;
+            $returnValue = $returnValue . DIRECTORY_SEPARATOR . $language;
         }
-        if (!empty($this->path)) {
-            $path = $path . DIRECTORY_SEPARATOR . $this->path;
+        if (!empty($path)) {
+            $returnValue = $returnValue . DIRECTORY_SEPARATOR . $path;
         }
-        return $path;
+        return $returnValue;
+    }
+
+    /**
+     * @return string
+     */
+    private function getSelfDirPath()
+    {
+        return $this->getDirPath(
+            $this->storage,
+            $this->path,
+            $this->language
+        );
     }
 
     /**
@@ -190,7 +276,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         if ($this->isLoaded) {
             return $this->content;
         }
-        $file = $this->getDirPath() . '.' . $this->type;
+        $file = $this->getSelfDirPath() . '.' . $this->type;
         $this->content = file_get_contents($file);
         $this->isLoaded = true;
         return $this->content;
@@ -260,10 +346,11 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
 
     /**
      * @param Dictionary $items
+     * @return array
      */
     public function merge(Dictionary $items)
     {
-        $this->items = array_merge($this->items, $items->toArray());
+        return array_merge($this->items, $items->toArray());
     }
 
     /**
@@ -315,7 +402,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      */
     public function jsonSerialize()
     {
-        $this->load();
+        $this->loadSelf();
         $retval = [];
         foreach ($this->items as $key => $item) {
             $retval[$key] = $item;
@@ -390,7 +477,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      */
     public function count()
     {
-        $this->load();
+        $this->loadSelf();
         return count($this->items);
     }
 
@@ -399,7 +486,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      */
     public function getIterator()
     {
-        $this->load();
+        $this->loadSelf();
         return new ArrayIterator($this->items);
     }
 
@@ -409,7 +496,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      */
     public function offsetExists($offset)
     {
-        $this->load();
+        $this->loadSelf();
         return isset($this->items[$offset]);
     }
 
@@ -419,7 +506,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      */
     public function offsetGet($offset)
     {
-        $this->load();
+        $this->loadSelf();
         if (isset($this->items[$offset])) {
             $item = $this->items[$offset];
             if ($item instanceof Dictionary && $item->getType() === Html::TYPE) {
@@ -436,7 +523,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      */
     public function offsetSet($offset, $value)
     {
-        $this->load();
+        $this->loadSelf();
         $this->items[$offset] = $value;
     }
 
@@ -445,7 +532,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      */
     public function offsetUnset($offset)
     {
-        $this->load();
+        $this->loadSelf();
         unset($this->items[$offset]);
     }
 }

@@ -95,4 +95,11 @@ class DictionaryTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('bar', $result['foo']);
         $this->assertRegExp("/Hello World/", $result['example']);
     }
+
+    public function testExtend()
+    {
+        $this->dictionary->extend('de');
+        $result = $this->dictionary->get('example');
+        $this->assertEquals('Was ist los?', $result['no_english_version']);
+    }
 }
