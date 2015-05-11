@@ -53,6 +53,13 @@ class DictionaryTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('This is an example', $result);
     }
 
+    public function testNestedLevels()
+    {
+
+        $result = $this->dictionary->get('a.b.c.d.e');
+        $this->assertEquals('Working', $result);
+    }
+
     public function testGetDirMethod()
     {
         $result = $this->dictionary->get('test2');
