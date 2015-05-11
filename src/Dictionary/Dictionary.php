@@ -425,7 +425,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess,
             } else {
                 if (is_array($object)) {
 
-                    return $this->arraySeek($object, $seek);
+                    return $this->createDictionary($object)->get($seek);
                 }
             }
 
@@ -604,28 +604,5 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess,
     {
         $this->loadSelf();
         unset($this->items[$offset]);
-    }
-
-    /**
-     * @param array  $array
-     * @param string $seek
-     *
-     * @return mixed
-     */
-    private function arraySeek(array $array, $seek)
-    {
-
-        $seek = explode('.', $seek);
-
-        foreach ($seek as $keyword) {
-
-            if (empty($keyword) || !isset($array[$keyword])) {
-                return null;
-            }
-
-            $array = $array[$keyword];
-        }
-
-        return $array;
     }
 }
