@@ -14,7 +14,8 @@ use InvalidArgumentException;
 /**
  * @method array errors(array $errors, array $text)
  */
-class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSerializable
+class Dictionary implements Countable, IteratorAggregate, ArrayAccess,
+    JsonSerializable
 {
     const ERRORS_METHOD = 'errors';
 
@@ -68,15 +69,22 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      * @param null|string $storage
      * @param null|string $name
      * @param null|string $path
-     * @param null|bool $isLoaded
-     * @param string $type
+     * @param null|bool   $isLoaded
+     * @param string      $type
      */
-    public function __construct($language = null, $storage = null, $name = null, $path = null, $isLoaded = null, $type = null)
-    {
+    public function __construct(
+        $language = null,
+        $storage = null,
+        $name = null,
+        $path = null,
+        $isLoaded = null,
+        $type = null
+    ) {
         $this->setLanguage($language);
         $this->setStorage($storage);
         $this->name = $name;
-        $this->path = trim($path . DIRECTORY_SEPARATOR . $name, DIRECTORY_SEPARATOR);
+        $this->path = trim($path . DIRECTORY_SEPARATOR . $name,
+            DIRECTORY_SEPARATOR);
         if (null !== $isLoaded) {
             $this->isLoaded = $isLoaded;
         }
@@ -85,6 +93,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
 
     /**
      * @param null|string|array $language
+     *
      * @throws InvalidArgumentException
      */
     public function extend($language)
@@ -101,6 +110,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
             } else {
                 $this->extend = array_merge($this->extend, $language);
             }
+
             return;
         }
         throw new InvalidArgumentException;
@@ -110,6 +120,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     {
         $dictionary = new Dictionary(null, null, null, null, true, null);
         $dictionary->set($items);
+
         return $dictionary;
     }
 
@@ -131,17 +142,26 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
 
     /**
      * Load files and variables
-     * @param string $name
-     * @param string $path
-     * @param string $type
+     *
+     * @param string             $name
+     * @param string             $path
+     * @param string             $type
      * @param array|Dictionary[] $items
-     * @param string $language
-     * @param string $storage
-     * @param array $extend
+     * @param string             $language
+     * @param string             $storage
+     * @param array              $extend
+     *
      * @return array
      */
-    private static function load($name, $path, $type, array $items, $language, $storage, array $extend = null)
-    {
+    private static function load(
+        $name,
+        $path,
+        $type,
+        array $items,
+        $language,
+        $storage,
+        array $extend = null
+    ) {
         $newItems = [];
 
         $dirPath = self::getDirPath($storage, $path, $language);
@@ -242,6 +262,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
      * @param string $storage
      * @param string $path
      * @param string $language
+     *
      * @return string
      */
     private static function getDirPath($storage, $path, $language)
@@ -253,6 +274,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         if (!empty($path)) {
             $returnValue = $returnValue . DIRECTORY_SEPARATOR . $path;
         }
+
         return $returnValue;
     }
 
@@ -279,16 +301,19 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         $file = $this->getSelfDirPath() . '.' . $this->type;
         $this->content = file_get_contents($file);
         $this->isLoaded = true;
+
         return $this->content;
     }
 
     /**
      * @param string $language
+     *
      * @return $this
      */
     public function setLanguage($language)
     {
         $this->language = $language;
+
         return $this;
     }
 
@@ -302,11 +327,13 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
 
     /**
      * @param string $storage
+     *
      * @return $this
      */
     public function setStorage($storage)
     {
         $this->storage = $storage;
+
         return $this;
     }
 
@@ -328,11 +355,13 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
 
     /**
      * @param string $type
+     *
      * @return $this
      */
     public function setType($type)
     {
         $this->type = $type;
+
         return $this;
     }
 
@@ -346,6 +375,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
 
     /**
      * @param Dictionary $items
+     *
      * @return array
      */
     public function merge(Dictionary $items)
@@ -355,10 +385,12 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
 
     /**
      * @param string $name
+     *
      * @return mixed
      */
     public function get($name)
     {
+
         if (is_array($name)) {
             $retval = [];
             foreach ($name as $string) {
@@ -371,21 +403,37 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                 }
                 $retval = array_merge($retval, $value);
             }
+
             return Dictionary::createDictionary($retval);
         }
 
         $parts = explode('.', $name, 2);
-        if (isset($parts[0])) {
-            $name = $parts[0];
-        }
-        if (isset($parts[1])) {
+        $name = $parts[0];
+        $seek = isset($parts[1]) ? $parts[1] : null;
+
+        if (!empty($seek)) {
+
             $object = $this->offsetGet($name);
-            if (is_object($object)) {
-                return $object->get($parts[1]);
+            $selfClass = __CLASS__;
+
+            if ($object instanceof $selfClass) {
+
+                /** @var self $object */
+
+                return $object->get($seek);
+
+            } else {
+                if (is_array($object)) {
+
+                    return $this->arraySeek($object, $seek);
+                }
             }
+
         } else {
+
             return $this->offsetGet($name);
         }
+
         return null;
     }
 
@@ -407,12 +455,14 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
         foreach ($this->items as $key => $item) {
             $retval[$key] = $item;
         }
+
         return $retval;
     }
 
     /**
      * @param array $errors
      * @param array $text
+     *
      * @return array
      */
     public function __errors(array $errors = null, array $text = null)
@@ -430,7 +480,9 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                 $retval[$error] = $text[$error];
             } else {
                 foreach ($text as $key => $value) {
-                    if (strncmp($error, $key, strlen($key)) === 0 && !isset($matches[$key])) {
+                    if (strncmp($error, $key, strlen($key)) === 0
+                        && !isset($matches[$key])
+                    ) {
                         $matches[$key] = true;
                         $retval[$error] = $value;
                         break;
@@ -438,11 +490,13 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
                 }
             }
         }
+
         return $retval;
     }
 
     /**
      * @param string $name
+     *
      * @return mixed
      */
     public function __get($name)
@@ -451,20 +505,25 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     }
 
     /**
-     * @param string $name
+     * @param string     $name
      * @param array|null $args
+     *
      * @return mixed
      */
     public function __call($name, $args = null)
     {
-        if ($name === self::ERRORS_METHOD && !$this->offsetExists($name) || null === $args) {
+        if ($name === self::ERRORS_METHOD && !$this->offsetExists($name)
+            || null === $args
+        ) {
             return call_user_func_array([$this, '__errors'], $args);
         }
+
         return $this->offsetGet($name);
     }
 
     /**
      * @param string $name
+     *
      * @return bool
      */
     public function __isset($name)
@@ -478,6 +537,7 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     public function count()
     {
         $this->loadSelf();
+
         return count($this->items);
     }
 
@@ -487,38 +547,48 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     public function getIterator()
     {
         $this->loadSelf();
+
         return new ArrayIterator($this->items);
     }
 
     /**
      * @param int $offset
+     *
      * @return bool
      */
     public function offsetExists($offset)
     {
         $this->loadSelf();
+
         return isset($this->items[$offset]);
     }
 
     /**
      * @param int $offset
+     *
      * @return mixed
      */
     public function offsetGet($offset)
     {
         $this->loadSelf();
         if (isset($this->items[$offset])) {
+
             $item = $this->items[$offset];
-            if ($item instanceof Dictionary && $item->getType() === Html::TYPE) {
+
+            if ($item instanceof Dictionary
+                && $item->getType() === Html::TYPE
+            ) {
                 return $this->items[$offset]->getRawContent();
             }
+
             return $this->items[$offset];
         }
+
         return null;
     }
 
     /**
-     * @param int $offset
+     * @param int   $offset
      * @param mixed $value
      */
     public function offsetSet($offset, $value)
@@ -534,5 +604,28 @@ class Dictionary implements Countable, IteratorAggregate, ArrayAccess, JsonSeria
     {
         $this->loadSelf();
         unset($this->items[$offset]);
+    }
+
+    /**
+     * @param array  $array
+     * @param string $seek
+     *
+     * @return mixed
+     */
+    private function arraySeek(array $array, $seek)
+    {
+
+        $seek = explode('.', $seek);
+
+        foreach ($seek as $keyword) {
+
+            if (empty($keyword) || !isset($array[$keyword])) {
+                return null;
+            }
+
+            $array = $array[$keyword];
+        }
+
+        return $array;
     }
 }
